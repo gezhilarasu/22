@@ -1,0 +1,87 @@
+
+import os
+import tensorflow as tf
+
+
+
+
+import cv2
+import numpy as np
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Suppress TensorFlow info and warning messages
+
+
+from tensorflow.keras import layers,models
+
+
+# Define the path to your dataset
+dataset_path = r"C:\Users\gezhi\Downloads\archive (1)\train_val_images\train_images"
+
+# Function to load and preprocess the dataset
+def load_and_preprocess_data(dataset_path):
+    images = []
+    labels = []
+
+    # Iterate over the images in the dataset directory
+    for filename in os.listdir(dataset_path):
+        if filename.endswith(".jpg") or filename.endswith(".png"):
+            # Read the image
+            image_path = os.path.join(dataset_path, filename)
+            image = cv2.imread(image_path)
+
+            # Resize the image to a uniform size (e.g., 128x128 pixels)
+            image = cv2.resize(image, (128, 128))
+
+            # Convert the image to grayscale if necessary
+            # image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+            # Normalize pixel values to the range [0, 1]
+            image = image.astype("float32") / 255.0
+
+            # Extract the label from the filename (assuming filename format: label_image.jpg)
+            label = filename.split("_")[0]
+
+            # Append the preprocessed image and label to the lists
+            images.append(image)
+            labels.append(label)
+
+    # Convert the lists to numpy arrays
+    images = np.array(images)
+    labels = np.array(labels)
+
+    return images, labels
+
+# Define your CNN model architecture
+def create_cnn_model(input_shape, num_classes):
+    model = models.Sequential([
+        layers.Conv2D(32, (3, 3), activation='relu', input_shape=input_shape),
+        layers.MaxPooling2D((2, 2)),
+        layers.Conv2D(64, (3, 3), activation='relu'),
+        layers.MaxPooling2D((2, 2)),
+        layers.Conv2D(128, (3, 3), activation='relu'),
+        layers.MaxPooling2D((2, 2)),
+        layers.Flatten(),
+        layers.Dense(128, activation='relu'),
+        layers.Dropout(0.5),
+        layers.Dense(num_classes, activation='softmax')
+    ])
+    return model
+
+# Load and preprocess the dataset
+images, labels = load_and_preprocess_data(dataset_path)
+
+# Define your dataset parameters
+input_shape = (128, 128, 3)  # Example input shape (height, width, channels)
+num_classes = len(np.unique(labels))  # Number of unique classes in the dataset
+
+# Create and compile your CNN model
+model = create_cnn_model(input_shape, num_classes)
+model.compile(optimizer='adam',
+              loss='sparse_categorical_crossentropy',
+              metrics=['accuracy'])
+
+# Train your CNN model
+history = model.fit(images, labels, epochs=10, validation_split=0.2)
+
+# Save your trained model for future use
+model.save('text_extraction_cnn_model.h5')
